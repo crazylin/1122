@@ -1,7 +1,7 @@
 using Avalonia;
 using System;
 
-namespace Avalonia3DSpace;
+namespace Avalonia3DControls;
 
 class Program
 {

@@ -1,70 +1,84 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:helix="clr-namespace:HelixToolkit.Avalonia;assembly=HelixToolkit.Avalonia"
-        x:Class="Avalonia3DSpace.MainWindow"
-        Title="Avalonia 3D Space"
-        Width="1200" Height="800"
+        x:Class="Avalonia3DControls.MainWindow"
+        Title="Avalonia 3D 控件演示"
+        Width="1400" Height="900"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- 左侧控制面板 -->
-        <StackPanel Grid.Column="0" Margin="10" Spacing="10">
-            <TextBlock Text="3D 空间控制" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-            
+        <!-- 顶部工具栏 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="10">
+            <TextBlock Text="3D 控件演示" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
             <Separator/>
-            
-            <TextBlock Text="相机控制" FontWeight="SemiBold"/>
-            <Button Content="重置视角" Click="OnResetView"/>
-            <Button Content="俯视图" Click="OnTopView"/>
-            <Button Content="侧视图" Click="OnSideView"/>
-            <Button Content="前视图" Click="OnFrontView"/>
-            
-            <Separator/>
-            
-            <TextBlock Text="对象控制" FontWeight="SemiBold"/>
-            <Button Content="添加立方体" Click="OnAddCube"/>
-            <Button Content="添加球体" Click="OnAddSphere"/>
-            <Button Content="添加圆柱体" Click="OnAddCylinder"/>
-            <Button Content="清除所有对象" Click="OnClearObjects"/>
-            
-            <Separator/>
-            
-            <TextBlock Text="动画控制" FontWeight="SemiBold"/>
-            <Button Content="开始旋转" Click="OnStartRotation"/>
-            <Button Content="停止旋转" Click="OnStopRotation"/>
-            
-            <Separator/>
-            
-            <TextBlock Text="场景信息" FontWeight="SemiBold"/>
-            <TextBlock x:Name="InfoText" Text="准备就绪" TextWrapping="Wrap"/>
+            <Button Content="添加3D按钮" Click="OnAdd3DButton"/>
+            <Button Content="添加3D滑块" Click="OnAdd3DSlider"/>
+            <Button Content="添加3D开关" Click="OnAdd3DSwitch"/>
+            <Button Content="添加3D进度条" Click="OnAdd3DProgressBar"/>
+            <Button Content="添加3D文本框" Click="OnAdd3DTextBox"/>
+            <Button Content="清除所有" Click="OnClearAll"/>
         </StackPanel>
 
-        <!-- 右侧3D场景 -->
-        <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Margin="10">
-            <helix:HelixViewport3D x:Name="Viewport3D"
-                                   CameraMode="Inspect"
-                                   ShowCoordinateSystem="True"
-                                   ShowViewCube="True"
-                                   ShowCameraTarget="True"
-                                   ZoomExtentsWhenLoaded="True">
-                
-                <!-- 光源 -->
-                <helix:DirectionalHeadLight Color="White" Direction="0,0,-1"/>
-                <helix:DirectionalHeadLight Color="White" Direction="0,1,0"/>
-                <helix:DirectionalHeadLight Color="White" Direction="1,0,0"/>
-                
-                <!-- 坐标轴 -->
-                <helix:CoordinateSystemVisual3D Size="2"/>
-                
-                <!-- 网格平面 -->
-                <helix:GridLinesVisual3D Width="20" Length="20" MinorDistance="1" MajorDistance="5" Thickness="0.5"/>
-                
-            </helix:HelixViewport3D>
-        </Border>
+        <!-- 主要内容区域 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 3D场景区域 -->
+            <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="10">
+                <Canvas x:Name="Canvas3D" Background="Black">
+                    <!-- 3D控件将在这里动态添加 -->
+                </Canvas>
+            </Border>
+
+            <!-- 右侧控制面板 -->
+            <ScrollViewer Grid.Column="1" Margin="10">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="控件属性" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    
+                    <Separator/>
+                    
+                    <TextBlock Text="场景信息" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="InfoText" Text="准备就绪" TextWrapping="Wrap"/>
+                    
+                    <Separator/>
+                    
+                    <TextBlock Text="3D控件说明" FontWeight="SemiBold"/>
+                    <TextBlock Text="• 3D按钮：可点击的立体按钮控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 3D滑块：可拖拽的立体滑块控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 3D开关：可切换的立体开关控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 3D进度条：立体进度显示控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 3D文本框：立体文本输入控件" TextWrapping="Wrap"/>
+                    
+                    <Separator/>
+                    
+                    <TextBlock Text="操作说明" FontWeight="SemiBold"/>
+                    <TextBlock Text="• 鼠标左键：点击3D控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 鼠标拖拽：移动3D控件" TextWrapping="Wrap"/>
+                    <TextBlock Text="• 滚轮缩放：调整控件大小" TextWrapping="Wrap"/>
+                    
+                    <Separator/>
+                    
+                    <TextBlock Text="自定义设置" FontWeight="SemiBold"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="控件大小:" VerticalAlignment="Center"/>
+                        <Slider x:Name="SizeSlider" Minimum="0.5" Maximum="2.0" Value="1.0" Width="100"/>
+                        <TextBlock x:Name="SizeValue" Text="1.0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="控件间距:" VerticalAlignment="Center"/>
+                        <Slider x:Name="SpacingSlider" Minimum="1.0" Maximum="5.0" Value="3.0" Width="100"/>
+                        <TextBlock x:Name="SpacingValue" Text="3.0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Window>

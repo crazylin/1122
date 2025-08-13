@@ -1,163 +1,284 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using HelixToolkit.Avalonia;
-using HelixToolkit.Avalonia.Core;
+using Avalonia.Media;
 using System;
 using System.Collections.Generic;
-using System.Timers;
+using System.Linq;
 
-namespace Avalonia3DSpace;
+namespace Avalonia3DControls;
 
 public partial class MainWindow : Window
 {
-    private readonly List<ModelVisual3D> _objects = new();
-    private readonly Timer _rotationTimer;
-    private int _objectCounter = 0;
-    private bool _isRotating = false;
+    private readonly List<Control> _controls = new();
+    private int _controlCounter = 0;
+    private double _currentSize = 1.0;
+    private double _currentSpacing = 3.0;
 
     public MainWindow()
     {
         InitializeComponent();
         
-        // 初始化旋转定时器
-        _rotationTimer = new Timer(50); // 20 FPS
-        _rotationTimer.Elapsed += OnRotationTimerElapsed;
+        // 绑定滑块事件
+        SizeSlider.ValueChanged += OnSizeChanged;
+        SpacingSlider.ValueChanged += OnSpacingChanged;
         
         UpdateInfo();
     }
 
-    private void OnResetView(object? sender, RoutedEventArgs e)
+    private void OnSizeChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
-        Viewport3D.Reset();
-        UpdateInfo("视角已重置");
+        _currentSize = e.NewValue;
+        SizeValue.Text = _currentSize.ToString("F1");
+        UpdateControlSizes();
     }
 
-    private void OnTopView(object? sender, RoutedEventArgs e)
+    private void OnSpacingChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
-        Viewport3D.Camera.Position = new System.Windows.Media.Media3D.Point3D(0, 10, 0);
-        Viewport3D.Camera.LookDirection = new System.Windows.Media.Media3D.Vector3D(0, -1, 0);
-        Viewport3D.Camera.UpDirection = new System.Windows.Media.Media3D.Vector3D(0, 0, 1);
-        UpdateInfo("切换到俯视图");
+        _currentSpacing = e.NewValue;
+        SpacingValue.Text = _currentSpacing.ToString("F1");
+        RearrangeControls();
     }
 
-    private void OnSideView(object? sender, RoutedEventArgs e)
+    private void OnAdd3DButton(object? sender, RoutedEventArgs e)
     {
-        Viewport3D.Camera.Position = new System.Windows.Media.Media3D.Point3D(10, 0, 0);
-        Viewport3D.Camera.LookDirection = new System.Windows.Media.Media3D.Vector3D(-1, 0, 0);
-        Viewport3D.Camera.UpDirection = new System.Windows.Media.Media3D.Vector3D(0, 1, 0);
-        UpdateInfo("切换到侧视图");
+        var button = Create3DButton();
+        _controls.Add(button);
+        Canvas3D.Children.Add(button);
+        _controlCounter++;
+        
+        RearrangeControls();
+        UpdateInfo($"已添加3D按钮 #{_controlCounter}");
     }
 
-    private void OnFrontView(object? sender, RoutedEventArgs e)
+    private void OnAdd3DSlider(object? sender, RoutedEventArgs e)
     {
-        Viewport3D.Camera.Position = new System.Windows.Media.Media3D.Point3D(0, 0, 10);
-        Viewport3D.Camera.LookDirection = new System.Windows.Media.Media3D.Vector3D(0, 0, -1);
-        Viewport3D.Camera.UpDirection = new System.Windows.Media.Media3D.Vector3D(0, 1, 0);
-        UpdateInfo("切换到前视图");
+        var slider = Create3DSlider();
+        _controls.Add(slider);
+        Canvas3D.Children.Add(slider);
+        _controlCounter++;
+        
+        RearrangeControls();
+        UpdateInfo($"已添加3D滑块 #{_controlCounter}");
     }
 
-    private void OnAddCube(object? sender, RoutedEventArgs e)
+    private void OnAdd3DSwitch(object? sender, RoutedEventArgs e)
     {
-        var cube = new CubeVisual3D
+        var switchControl = Create3DSwitch();
+        _controls.Add(switchControl);
+        Canvas3D.Children.Add(switchControl);
+        _controlCounter++;
+        
+        RearrangeControls();
+        UpdateInfo($"已添加3D开关 #{_controlCounter}");
+    }
+
+    private void OnAdd3DProgressBar(object? sender, RoutedEventArgs e)
+    {
+        var progressBar = Create3DProgressBar();
+        _controls.Add(progressBar);
+        Canvas3D.Children.Add(progressBar);
+        _controlCounter++;
+        
+        RearrangeControls();
+        UpdateInfo($"已添加3D进度条 #{_controlCounter}");
+    }
+
+    private void OnAdd3DTextBox(object? sender, RoutedEventArgs e)
+    {
+        var textBox = Create3DTextBox();
+        _controls.Add(textBox);
+        Canvas3D.Children.Add(textBox);
+        _controlCounter++;
+        
+        RearrangeControls();
+        UpdateInfo($"已添加3D文本框 #{_controlCounter}");
+    }
+
+    private void OnClearAll(object? sender, RoutedEventArgs e)
+    {
+        foreach (var control in _controls)
         {
-            SideLength = 1.0,
-            Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Blue),
-            Center = new System.Windows.Media.Media3D.Point3D(_objectCounter * 2 - 2, 0.5, 0)
-        };
-        
-        _objects.Add(cube);
-        Viewport3D.Children.Add(cube);
-        _objectCounter++;
-        
-        UpdateInfo($"已添加立方体 #{_objectCounter}");
-    }
-
-    private void OnAddSphere(object? sender, RoutedEventArgs e)
-    {
-        var sphere = new SphereVisual3D
-        {
-            Radius = 0.5,
-            Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red),
-            Center = new System.Windows.Media.Media3D.Point3D(_objectCounter * 2 - 2, 0.5, 0)
-        };
-        
-        _objects.Add(sphere);
-        Viewport3D.Children.Add(sphere);
-        _objectCounter++;
-        
-        UpdateInfo($"已添加球体 #{_objectCounter}");
-    }
-
-    private void OnAddCylinder(object? sender, RoutedEventArgs e)
-    {
-        var cylinder = new CylinderVisual3D
-        {
-            Height = 1.0,
-            Diameter = 0.8,
-            Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Green),
-            Center = new System.Windows.Media.Media3D.Point3D(_objectCounter * 2 - 2, 0.5, 0)
-        };
-        
-        _objects.Add(cylinder);
-        Viewport3D.Children.Add(cylinder);
-        _objectCounter++;
-        
-        UpdateInfo($"已添加圆柱体 #{_objectCounter}");
-    }
-
-    private void OnClearObjects(object? sender, RoutedEventArgs e)
-    {
-        foreach (var obj in _objects)
-        {
-            Viewport3D.Children.Remove(obj);
+            Canvas3D.Children.Remove(control);
         }
-        _objects.Clear();
-        _objectCounter = 0;
+        _controls.Clear();
+        _controlCounter = 0;
         
-        UpdateInfo("已清除所有对象");
+        UpdateInfo("已清除所有3D控件");
     }
 
-    private void OnStartRotation(object? sender, RoutedEventArgs e)
+    private Control Create3DButton()
     {
-        if (!_isRotating)
+        var button = new Button
         {
-            _rotationTimer.Start();
-            _isRotating = true;
-            UpdateInfo("开始旋转动画");
+            Content = "3D按钮",
+            Width = 120 * _currentSize,
+            Height = 60 * _currentSize,
+            Background = new SolidColorBrush(Colors.DodgerBlue),
+            Foreground = new SolidColorBrush(Colors.White),
+            FontWeight = FontWeight.Bold,
+            FontSize = 14 * _currentSize
+        };
+
+        // 添加3D效果
+        button.Effect = new DropShadowEffect
+        {
+            Color = Colors.Black,
+            BlurRadius = 10,
+            OffsetX = 5,
+            OffsetY = 5
+        };
+
+        button.Click += (s, e) => UpdateInfo($"点击了按钮 #{_controls.IndexOf(button) + 1}");
+
+        return button;
+    }
+
+    private Control Create3DSlider()
+    {
+        var slider = new Slider
+        {
+            Width = 150 * _currentSize,
+            Height = 40 * _currentSize,
+            Minimum = 0,
+            Maximum = 100,
+            Value = 50
+        };
+
+        // 添加3D效果
+        slider.Effect = new DropShadowEffect
+        {
+            Color = Colors.Black,
+            BlurRadius = 8,
+            OffsetX = 3,
+            OffsetY = 3
+        };
+
+        slider.ValueChanged += (s, e) => UpdateInfo($"滑块值: {e.NewValue:F0}");
+
+        return slider;
+    }
+
+    private Control Create3DSwitch()
+    {
+        var toggleSwitch = new ToggleSwitch
+        {
+            Width = 80 * _currentSize,
+            Height = 40 * _currentSize
+        };
+
+        // 添加3D效果
+        toggleSwitch.Effect = new DropShadowEffect
+        {
+            Color = Colors.Black,
+            BlurRadius = 6,
+            OffsetX = 2,
+            OffsetY = 2
+        };
+
+        toggleSwitch.IsCheckedChanged += (s, e) => UpdateInfo($"开关状态: {(toggleSwitch.IsChecked == true ? "开启" : "关闭")}");
+
+        return toggleSwitch;
+    }
+
+    private Control Create3DProgressBar()
+    {
+        var progressBar = new ProgressBar
+        {
+            Width = 150 * _currentSize,
+            Height = 30 * _currentSize,
+            Value = 75,
+            Maximum = 100
+        };
+
+        // 添加3D效果
+        progressBar.Effect = new DropShadowEffect
+        {
+            Color = Colors.Black,
+            BlurRadius = 8,
+            OffsetX = 3,
+            OffsetY = 3
+        };
+
+        return progressBar;
+    }
+
+    private Control Create3DTextBox()
+    {
+        var textBox = new TextBox
+        {
+            Width = 150 * _currentSize,
+            Height = 40 * _currentSize,
+            Text = "3D文本框",
+            FontSize = 14 * _currentSize,
+            Background = new SolidColorBrush(Colors.White),
+            Foreground = new SolidColorBrush(Colors.Black)
+        };
+
+        // 添加3D效果
+        textBox.Effect = new DropShadowEffect
+        {
+            Color = Colors.Black,
+            BlurRadius = 8,
+            OffsetX = 3,
+            OffsetY = 3
+        };
+
+        textBox.TextChanged += (s, e) => UpdateInfo($"文本框内容: {textBox.Text}");
+
+        return textBox;
+    }
+
+    private void RearrangeControls()
+    {
+        var startX = 50.0;
+        var startY = 50.0;
+        var controlsPerRow = 3;
+
+        for (int i = 0; i < _controls.Count; i++)
+        {
+            var control = _controls[i];
+            var row = i / controlsPerRow;
+            var col = i % controlsPerRow;
+
+            Canvas.SetLeft(control, startX + col * (150 * _currentSize + _currentSpacing * 20));
+            Canvas.SetTop(control, startY + row * (60 * _currentSize + _currentSpacing * 20));
         }
     }
 
-    private void OnStopRotation(object? sender, RoutedEventArgs e)
+    private void UpdateControlSizes()
     {
-        if (_isRotating)
+        foreach (var control in _controls)
         {
-            _rotationTimer.Stop();
-            _isRotating = false;
-            UpdateInfo("停止旋转动画");
-        }
-    }
-
-    private void OnRotationTimerElapsed(object? sender, ElapsedEventArgs e)
-    {
-        if (_isRotating)
-        {
-            Dispatcher.InvokeAsync(() =>
+            if (control is Button button)
             {
-                foreach (var obj in _objects)
-                {
-                    var transform = obj.Transform as System.Windows.Media.Media3D.RotateTransform3D;
-                    if (transform == null)
-                    {
-                        transform = new System.Windows.Media.Media3D.RotateTransform3D();
-                        obj.Transform = transform;
-                    }
-                    
-                    transform.Rotation = new System.Windows.Media.Media3D.AxisAngleRotation3D(
-                        new System.Windows.Media.Media3D.Vector3D(0, 1, 0), 
-                        DateTime.Now.Millisecond * 0.36); // 每秒旋转360度
-                }
-            });
+                button.Width = 120 * _currentSize;
+                button.Height = 60 * _currentSize;
+                button.FontSize = 14 * _currentSize;
+            }
+            else if (control is Slider slider)
+            {
+                slider.Width = 150 * _currentSize;
+                slider.Height = 40 * _currentSize;
+            }
+            else if (control is ToggleSwitch toggleSwitch)
+            {
+                toggleSwitch.Width = 80 * _currentSize;
+                toggleSwitch.Height = 40 * _currentSize;
+            }
+            else if (control is ProgressBar progressBar)
+            {
+                progressBar.Width = 150 * _currentSize;
+                progressBar.Height = 30 * _currentSize;
+            }
+            else if (control is TextBox textBox)
+            {
+                textBox.Width = 150 * _currentSize;
+                textBox.Height = 40 * _currentSize;
+                textBox.FontSize = 14 * _currentSize;
+            }
         }
+        
+        RearrangeControls();
     }
 
     private void UpdateInfo(string? message = null)
@@ -168,17 +289,11 @@ public partial class MainWindow : Window
         }
         
         var info = $"场景信息:\n";
-        info += $"对象数量: {_objects.Count}\n";
-        info += $"相机位置: {Viewport3D.Camera.Position}\n";
-        info += $"旋转状态: {(_isRotating ? "运行中" : "已停止")}";
+        info += $"3D控件数量: {_controls.Count}\n";
+        info += $"控件大小: {_currentSize:F1}\n";
+        info += $"控件间距: {_currentSpacing:F1}\n";
+        info += $"画布尺寸: {Canvas3D.Width} x {Canvas3D.Height}";
         
         InfoText.Text = info;
-    }
-
-    protected override void OnUnloaded(RoutedEventArgs e)
-    {
-        _rotationTimer?.Stop();
-        _rotationTimer?.Dispose();
-        base.OnUnloaded(e);
     }
 }
