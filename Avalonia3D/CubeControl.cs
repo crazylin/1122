@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using OpenTK.Graphics.OpenGL4;
@@ -19,11 +20,103 @@ public sealed class CubeControl : OpenGlControlBase
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
+    // Camera state
+    private float _yawDeg = 30f;
+    private float _pitchDeg = 20f;
+    private float _distance = 3.0f;
+    private Vector3 _target = Vector3.Zero;
+
+    // Interaction state
+    private bool _isRotating;
+    private bool _isPanning;
+    private Point _lastPointer;
+
     private sealed class AvaloniaBindingsContext : OpenTK.IBindingsContext
     {
         private readonly GlInterface _gl;
         public AvaloniaBindingsContext(GlInterface gl) => _gl = gl;
         public IntPtr GetProcAddress(string procName) => _gl.GetProcAddress(procName);
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        var pt = e.GetCurrentPoint(this);
+        _lastPointer = pt.Position;
+
+        if (pt.Properties.IsLeftButtonPressed)
+        {
+            _isRotating = true;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+        }
+        else if (pt.Properties.IsRightButtonPressed || pt.Properties.IsMiddleButtonPressed)
+        {
+            _isPanning = true;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+        }
+
+        base.OnPointerPressed(e);
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        var pos = e.GetPosition(this);
+        var dx = (float)(pos.X - _lastPointer.X);
+        var dy = (float)(pos.Y - _lastPointer.Y);
+        _lastPointer = pos;
+
+        if (_isRotating)
+        {
+            const float rotateSpeed = 0.3f; // deg per px
+            _yawDeg += dx * rotateSpeed;
+            _pitchDeg += dy * rotateSpeed;
+            _pitchDeg = Math.Clamp(_pitchDeg, -89f, 89f);
+            RequestNextFrameRendering();
+            e.Handled = true;
+        }
+        else if (_isPanning)
+        {
+            // Convert screen delta to world-space pan along camera right/up
+            var yaw = MathHelper.DegreesToRadians(_yawDeg);
+            var pitch = MathHelper.DegreesToRadians(_pitchDeg);
+            var forward = new Vector3(
+                MathF.Cos(pitch) * MathF.Cos(yaw),
+                MathF.Sin(pitch),
+                MathF.Cos(pitch) * MathF.Sin(yaw));
+            var right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitY));
+            var up = Vector3.Normalize(Vector3.Cross(right, forward));
+
+            float panScale = _distance * 0.002f; // tune
+            _target += (-dx * panScale) * right + (dy * panScale) * up;
+            RequestNextFrameRendering();
+            e.Handled = true;
+        }
+
+        base.OnPointerMoved(e);
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        _isRotating = false;
+        _isPanning = false;
+        e.Pointer.Capture(null);
+        e.Handled = true;
+        base.OnPointerReleased(e);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        // Zoom: positive Y typically means wheel up; use exponential scaling
+        float zoomSteps = (float)e.Delta.Y;
+        if (Math.Abs(zoomSteps) > float.Epsilon)
+        {
+            float factor = (float)Math.Pow(1.1, zoomSteps);
+            _distance = Math.Clamp(_distance / factor, 0.3f, 50f);
+            RequestNextFrameRendering();
+            e.Handled = true;
+        }
+        base.OnPointerWheelChanged(e);
     }
 
     protected override void OnOpenGlRender(GlInterface gl, int fb)
@@ -50,10 +143,18 @@ public sealed class CubeControl : OpenGlControlBase
 
         GL.UseProgram(_shaderProgram);
 
-        float t = (float)_stopwatch.Elapsed.TotalSeconds;
-        var projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60f), width / (float)height, 0.1f, 100f);
-        var view = Matrix4.LookAt(new Vector3(1.8f, 1.6f, 2.2f), Vector3.Zero, Vector3.UnitY);
-        var model = Matrix4.CreateRotationY(t * 0.8f) * Matrix4.CreateRotationX(t * 0.4f);
+        // Camera view
+        var yaw = MathHelper.DegreesToRadians(_yawDeg);
+        var pitch = MathHelper.DegreesToRadians(_pitchDeg);
+        var forward = new Vector3(
+            MathF.Cos(pitch) * MathF.Cos(yaw),
+            MathF.Sin(pitch),
+            MathF.Cos(pitch) * MathF.Sin(yaw));
+        var cameraPos = _target - forward * _distance;
+
+        var projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60f), width / (float)height, 0.05f, 100f);
+        var view = Matrix4.LookAt(cameraPos, _target, Vector3.UnitY);
+        var model = Matrix4.Identity;
         var mvp = model * view * projection;
 
         int mvpLoc = GL.GetUniformLocation(_shaderProgram, "uMVP");
