@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helix="clr-namespace:HelixToolkit.Avalonia;assembly=HelixToolkit.Avalonia"
+        x:Class="Avalonia3DSpace.MainWindow"
+        Title="Avalonia 3D Space"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧控制面板 -->
+        <StackPanel Grid.Column="0" Margin="10" Spacing="10">
+            <TextBlock Text="3D 空间控制" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+            
+            <Separator/>
+            
+            <TextBlock Text="相机控制" FontWeight="SemiBold"/>
+            <Button Content="重置视角" Click="OnResetView"/>
+            <Button Content="俯视图" Click="OnTopView"/>
+            <Button Content="侧视图" Click="OnSideView"/>
+            <Button Content="前视图" Click="OnFrontView"/>
+            
+            <Separator/>
+            
+            <TextBlock Text="对象控制" FontWeight="SemiBold"/>
+            <Button Content="添加立方体" Click="OnAddCube"/>
+            <Button Content="添加球体" Click="OnAddSphere"/>
+            <Button Content="添加圆柱体" Click="OnAddCylinder"/>
+            <Button Content="清除所有对象" Click="OnClearObjects"/>
+            
+            <Separator/>
+            
+            <TextBlock Text="动画控制" FontWeight="SemiBold"/>
+            <Button Content="开始旋转" Click="OnStartRotation"/>
+            <Button Content="停止旋转" Click="OnStopRotation"/>
+            
+            <Separator/>
+            
+            <TextBlock Text="场景信息" FontWeight="SemiBold"/>
+            <TextBlock x:Name="InfoText" Text="准备就绪" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <!-- 右侧3D场景 -->
+        <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Margin="10">
+            <helix:HelixViewport3D x:Name="Viewport3D"
+                                   CameraMode="Inspect"
+                                   ShowCoordinateSystem="True"
+                                   ShowViewCube="True"
+                                   ShowCameraTarget="True"
+                                   ZoomExtentsWhenLoaded="True">
+                
+                <!-- 光源 -->
+                <helix:DirectionalHeadLight Color="White" Direction="0,0,-1"/>
+                <helix:DirectionalHeadLight Color="White" Direction="0,1,0"/>
+                <helix:DirectionalHeadLight Color="White" Direction="1,0,0"/>
+                
+                <!-- 坐标轴 -->
+                <helix:CoordinateSystemVisual3D Size="2"/>
+                
+                <!-- 网格平面 -->
+                <helix:GridLinesVisual3D Width="20" Length="20" MinorDistance="1" MajorDistance="5" Thickness="0.5"/>
+                
+            </helix:HelixViewport3D>
+        </Border>
+    </Grid>
+</Window>
